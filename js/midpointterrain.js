@@ -75,8 +75,9 @@ $(document).ready(function() {
     var context = canvas.getContext('2d');
     var tcanvas = document.createElement('canvas');
     var tcontext = tcanvas.getContext('2d');
+    var floor = document.body.offsetHeight - 50;
     var height, width, slices, xoffset, changed;
-    var uspeed = 1000/60;
+    var uspeed = 1000 / 60;
     var settings = {
         xspeed: 20,
         slice_size: 400,
@@ -86,6 +87,7 @@ $(document).ready(function() {
     };
     
     var airplaneImg = new Image();
+    var shadowImg = new Image();
     
     var aircraft = {
         x: document.body.offsetWidth / 4,
@@ -95,6 +97,13 @@ $(document).ready(function() {
         speed: 100,
         pitchFactor: 0.008,
         accelerationFactor: 0.02
+    };
+
+    var shadow = {
+        x: aircraft.x,
+        y: floor,
+        width: 100,
+        height: 20
     };
 
     setTimeout(init, 100);
@@ -125,6 +134,7 @@ $(document).ready(function() {
 
     function generate() {
         slices.push(new Terrain2D(height, settings.slice_size + 1, height - settings.start_height, 4, settings.height_deviation, 1));
+        updateWeatherScene();
     }
 
     function update(mod) {
@@ -133,11 +143,10 @@ $(document).ready(function() {
             aircraft.y -= aircraft.speed * aircraft.pitchFactor;
         
         // down arrow
-        if (40 in keysDown && aircraft.y < canvas.height - aircraft.height)
+        if (40 in keysDown && aircraft.y < floor - aircraft.height)
             aircraft.y += aircraft.speed * aircraft.pitchFactor;
 
         aircraft.speed = canvas.height/2 - Math.abs(aircraft.y - canvas.height/2);
-
 
         // left arrow
         if (37 in keysDown && aircraft.x > 0)
@@ -148,26 +157,20 @@ $(document).ready(function() {
             aircraft.x += 40 * aircraft.accelerationFactor;
 
         // key 1 (day)
-        if (49 in keysDown)
+        if (49 in keysDown) {
             weatherMode = 1;
+            updateWeatherScene();
+        }
 
         // key 2 (night)
-        if (50 in keysDown)
+        if (50 in keysDown) {
             weatherMode = 2;
-
-        // mode day
-        if (weatherMode == 1) {
-            $('body').css('background', 'linear-gradient(to bottom, #2c7de0 10%, #efe481 100%)');
-            airplaneImg.src = 'img/f16.png';
-            settings.terrainColor = '#021704';
+            updateWeatherScene();
         }
 
-        // mode night
-        if (weatherMode == 2) {
-            $('body').css('background', 'linear-gradient(to bottom, #111A20 20%, #59230B 100%');
-            airplaneImg.src = 'img/f117.png';
-            settings.terrainColor = '#000000';
-        }
+        shadowImg.src = 'img/shadow.png';
+        shadow.x = aircraft.x;
+        shadow.width = 100 + ((canvas.height / aircraft.y) * 10);
 
         if (changed)
             return;
@@ -185,6 +188,22 @@ $(document).ready(function() {
         setTimeout(update, uspeed);
     }
 
+    function updateWeatherScene() {
+        // day
+        if (weatherMode == 1) {
+            $('body').css('background', 'linear-gradient(to bottom, #2c7de0 10%, #efe481 100%)');
+            airplaneImg.src = 'img/f16.png';
+            settings.terrainColor = '#021704';
+        }
+
+        // night
+        if (weatherMode == 2) {
+            $('body').css('background', 'linear-gradient(to bottom, #111A20 20%, #59230B 100%');
+            airplaneImg.src = 'img/f117.png';
+            settings.terrainColor = '#000000';
+        }
+    }
+
     function render() {
         if (changed)
             return;
@@ -195,6 +214,7 @@ $(document).ready(function() {
             slices[i].render(context, i * settings.slice_size + xoffset + 1, 1, settings.terrainColor);
 
         context.drawImage(airplaneImg, aircraft.x, aircraft.y, aircraft.width, aircraft.height);
+        context.drawImage(shadowImg, shadow.x, shadow.y, shadow.width, shadow.height);
         
         requestAnimationFrame(render);
     }
